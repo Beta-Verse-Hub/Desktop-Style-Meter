@@ -1,15 +1,22 @@
 from tkinter import *
+import threading
 
 # Create an instance of Tkinter Frame
 window = Tk()
 
 # Set the geometry
-window.geometry("700x250")
+window.geometry("200x200+100+100")
+
+# Make the window borderless
+window.overrideredirect(True)
 
 # Adding transparent background property
-window.wm_attributes('-transparentcolor', '#ab23ff')
+transparent_color = "#010101"
+window.wm_attributes('-transparentcolor', transparent_color)
 
 # Create a Label with the same background color as the transparent color
-Label(window, text="This is a New line Text", font=('Helvetica 18'), bg='#ab23ff').pack(ipadx=50, ipady=50, padx=20)
+Label(window, text="Hello", font=('Helvetica 18'), bg=transparent_color).pack(ipadx=100, ipady=100, padx=0)
+
+window.bind("<Escape>", lambda event: window.destroy())
 
 window.mainloop()
