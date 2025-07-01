@@ -4,41 +4,51 @@ import keyboard
 
 
 def init():
-
+    
     """
-    Initializes the char_hits and time_of_total_hits lists. These lists are used by the timer function to keep track of
-    the number of key presses and the time between those key presses respectively. The timer function will reset the
-    char_hits list every second and store the length of the list in the time_of_total_hits list at that time. If the
-    length of the time_of_total_hits list exceeds 10, it will remove the first element of the list. The timer function is
-    a separate thread and runs indefinitely until the program is stopped.
+    Initializes the variables used by the module.
+
+    Sets the global variables to their initial states. This function is called
+    at the start of the program to reset the variables.
     """
 
-    global char_hits
-    global time_of_total_hits
+    global char_hits, time_of_total_hits, last_key
+
     char_hits = []
     time_of_total_hits = []
+    last_key = None
 
 
 def detectCharHit():
 
     """
-    Continuously listens for keyboard input and appends the detected key to the char_hits list.
-
-    The function captures every key press using the `keyboard` library and stores it in the
-    global list `char_hits`, which is used to track the sequence of keys pressed over time.
+    Detects when a key is pressed and appends the key to the char_hits list.
+    
+    This function is a blocking call and waits until a key is pressed. When a key is pressed, it appends the key to the char_hits list and returns the key.
+    
+    Returns:
+        str: The key that was pressed.
     """
 
-    while True:
+    global char_hits
+    
+    key = keyboard.read_key()
+    char_hits.append(key)
 
-        global char_hits
-        char_hits.append(keyboard.read_key())
+    return key
 
 
 def timer():
-    
+
     """
-    Resets the char_hits list every second and stores the length of the list right before the reset in the time_of_total_hits list.
-    If the length of the time_of_total_hits list is greater than 10, it removes the first element of the list.
+    Keeps track of the total hits of keys.
+
+    This function runs in a separate thread and waits until the char_hits list
+    has more than 5 elements. When this condition is met, it appends the length
+    of the char_hits list to the time_of_total_hits list. If the
+    time_of_total_hits list has more than 10 elements, it removes the oldest
+    element. Then, it resets the char_hits list to an empty list and sleeps for
+    1 second.
     """
     
     while True:
@@ -55,9 +65,39 @@ def timer():
     
         sleep(1)
 
-def runThreads():
+
+def startKeyListener():
+
+    """
+    Starts an infinite loop that waits for a key to be pressed and appends the key to the char_hits list.
+
+    This function is a blocking call and should be called in a separate thread to
+    keep the main program responsive.
+
+    Returns:
+        None
+    """
+
+    while True:
+        last_key = detectCharHit()
+
+
+def mainChecker():
+
+    """
+    Initializes and starts threads for tracking key presses and managing key hit timing.
+
+    This function creates and starts two daemon threads: one for periodically resetting
+    the character hit count and another for continuously listening for key presses. The
+    threads allow the program to track the number of key presses over time without blocking
+    the main program execution.
+
+    Returns:
+        None
+    """
+
     resetterThread = Thread(target=timer, daemon=True)
     resetterThread.start()
 
-    detectCharHitThread = Thread(target=detectCharHit, daemon=True)
-    detectCharHitThread.start()
+    startKeyListenerThread = Thread(target=startKeyListener, daemon=True)
+    startKeyListenerThread.start()

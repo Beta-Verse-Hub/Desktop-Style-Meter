@@ -5,12 +5,30 @@ import keyboard
 from pynput.mouse import Controller
 from time import sleep
 import pygetwindow as gw
+import CalculateCps
 
 
-AllStyles = []
+allStyles = []
 
 
-def addStyleText(text, StyleText):
+def LocalCps(styleText):
+    
+    """
+    Updates the styleText Label with the current count of character hits.
+
+    This function retrieves the length of the char_hits list from the CalculateCps module and 
+    passes it to the addStyleText function to update the styleText Label. It also initiates 
+    the threads in the CalculateCps module.
+
+    Args:
+        styleText (Label): The Label to be updated with the count of character hits.
+    """
+
+    while True:
+        addStyleText(str(len(CalculateCps.char_hits)), styleText)
+
+
+def addStyleText(text : str, styleText : Label):
 
     """
     Adds a string to the AllStyles list and updates the text of the StyleText Label.
@@ -20,17 +38,18 @@ def addStyleText(text, StyleText):
         StyleText (Label): The Label to be updated.
     """
 
-    if StyleText:
-        AllStyles.append("+ "+text)
+    if styleText:
+        allStyles.append("+ "+text)
         
-        if len(AllStyles) > 10:
-            AllStyles.pop(0)
+        if len(allStyles) > 10:
+            allStyles.pop(0)
         
-        StyleText.configure(text="\n".join(AllStyles))
+        styleText.configure(text="\n".join(allStyles))
 
 
 
-def input(window, StyleText):
+def Input(window, styleText):
+    
     """
     Monitors the existence of the window and waits for input to be pressed.
     If the "esc" key is pressed and the window is still open, it destroys the window.
@@ -46,7 +65,7 @@ def input(window, StyleText):
         sleep(0.01)
 
 
-def check_mouse(window, StyleText):
+def CheckMouse(window, StyleText):
     
     """
     Monitors the mouse position and checks if the user has moved it over a certain distance.
@@ -84,10 +103,82 @@ def check_mouse(window, StyleText):
         sleep(0.01)
 
 
+def addStyleText(text : str, styleText : Label):
+    """
+    Adds a string to the AllStyles list and updates the text of the StyleText Label.
+    This function MUST be called from the main Tkinter thread.
+    
+    Args:
+        text (str): The string to be added to AllStyles.
+        StyleText (Label): The Label to be updated.
+    """
+    if styleText:
+        # Check if the last added item is the same as the current text to avoid
+        # excessive duplicates if you only want unique messages
+        if not allStyles or allStyles[-1] != "+ " + text:
+            allStyles.append("+ "+text)
+        
+            if len(allStyles) > 10:
+                allStyles.pop(0)
+            
+            styleText.configure(text="\n".join(allStyles))
+
+
+def periodic_gui_update(window, styleText):
+
+    """
+    Periodically checks for key presses and mouse movement to update the styleText label accordingly.
+
+    This function is called every 100ms to update the styleText label with the current count of character hits and to check for mouse movement.
+    If the user has moved the mouse over the specified distance, it adds "+ John Cena's mouse" to the styleText label.
+    If the user has pressed the "esc" key, it destroys the window and stops scheduling further updates.
+
+    This function MUST be called from the main Tkinter thread.
+
+    Returns:
+        None
+    """
+
+
+    mouse = Controller()
+    
+    old_mouse_position = [-1,-1]
+
+    # If the window has been destroyed, stop scheduling further updates
+    if not window or not window.winfo_exists():
+        return
+
+    # 1. Input/Escape Key Check
+    if keyboard.is_pressed("esc"):
+    
+        window.destroy()
+        return
+
+    # 2. Update Local CPS
+    current_cps_hits = len(CalculateCps.char_hits)
+    addStyleText(str(current_cps_hits), styleText)
+
+    # 3. Check Mouse Movement
+
+    current_mouse_position = mouse.position
+
+    if current_mouse_position != old_mouse_position:
+
+        if old_mouse_position != [-1,-1] and (abs(current_mouse_position[0]-old_mouse_position[0]) > 150 or abs(current_mouse_position[1]-old_mouse_position[1]) > 150):
+
+            addStyleText("John Cena's mouse", styleText)
+
+        old_mouse_position = current_mouse_position
+
+
+
 def main():
+
+    # Initialize the CalculateCps module's variables
+    CalculateCps.init()
+    
     # Create an instance of Tkinter Frame
     window = Tk()
-
 
     # Get the screen dimensions
     screen_width = window.winfo_screenwidth()
@@ -109,18 +200,16 @@ def main():
     # Create a Label with the same background color as the transparent color
     bg_image = PhotoImage(file="Background.png")
 
-    StyleTextCanvas = Canvas(window, width=bg_image.width(), height=bg_image.height(), highlightthickness=0)
-    StyleTextCanvas.pack(fill="both", expand=True)
-    StyleTextCanvas.create_image(0, 0, image=bg_image, anchor="nw")
+    styleTextCanvas = Canvas(window, width=bg_image.width(), height=bg_image.height(), highlightthickness=0)
+    styleTextCanvas.pack(fill="both", expand=True)
+    styleTextCanvas.create_image(0, 0, image=bg_image, anchor="nw")
     
-    StyleText = Label(StyleTextCanvas, text=AllStyles, font=('Helvetica 18'), foreground="#000000", background = "#ffffff")
-    StyleText.pack(ipadx=0, ipady=0, pady=30)
+    styleText = Label(styleTextCanvas, text=allStyles, font=('Helvetica 18'), foreground="#000000", background = "#ffffff")
+    styleText.pack(ipadx=0, ipady=0, pady=60)
 
     # Threads
-    input_thread = threading.Thread(target=input, args=(window, StyleText,), daemon=True)
-    input_thread.start()
-    check_mouse_thread = threading.Thread(target=check_mouse, args=(window, StyleText, ), daemon=True)
-    check_mouse_thread.start()
+    CalculateCps.mainChecker()
+    window.after(100, periodic_gui_update, window, styleText)
 
     # Start the main loop
     window.mainloop()
