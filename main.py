@@ -11,171 +11,83 @@ import CalculateCps
 allStyles = []
 
 
-def LocalCps(styleText):
-    
-    """
-    Updates the styleText Label with the current count of character hits.
-
-    This function retrieves the length of the char_hits list from the CalculateCps module and 
-    passes it to the addStyleText function to update the styleText Label. It also initiates 
-    the threads in the CalculateCps module.
-
-    Args:
-        styleText (Label): The Label to be updated with the count of character hits.
-    """
-
-    while True:
-        addStyleText(str(len(CalculateCps.char_hits)), styleText)
-
-
 def addStyleText(text : str, styleText : Label):
 
     """
-    Adds a string to the AllStyles list and updates the text of the StyleText Label.
-    
+    Adds a style text message to the given styleText label.
+
+    The message is prefixed with "+ " and appended to the list of all styles.
+    If there are more than 10 messages, the oldest one is removed first.
+
     Args:
-        text (str): The string to be added to AllStyles.
-        StyleText (Label): The Label to be updated.
+        text (str): The message to add.
+        styleText (Label): The label to update with the new message.
     """
 
     if styleText:
+        # Check if the last added item is the same as the current text to avoid
+        # excessive duplicates if you only want unique messages
         allStyles.append("+ "+text)
-        
+    
         if len(allStyles) > 10:
             allStyles.pop(0)
         
         styleText.configure(text="\n".join(allStyles))
 
 
-
-def Input(window, styleText):
-    
-    """
-    Monitors the existence of the window and waits for input to be pressed.
-    If the "esc" key is pressed and the window is still open, it destroys the window.
-    
-    Args:
-        window: A Tkinter window instance to monitor and potentially destroy.
-    """
-
-    while window.winfo_exists():
-        if keyboard.is_pressed("esc"):
-            window.destroy()
-        
-        sleep(0.01)
-
-
-def CheckMouse(window, StyleText):
-    
-    """
-    Monitors the mouse position and checks if the user has moved it over a certain distance.
-    If the user has moved the mouse over the specified distance, then it prints "+ John Cena's mouse" to the console.
-    
-    Args:
-        window: A Tkinter window instance to monitor and potentially destroy.
-    """
-
-    mouse = Controller()
-    breaks_for_check = {
-        "distance" : [1,1]
-    }
-    old_mouse_position = [-1,-1]
-
-    while window.winfo_exists():
-    
-        if breaks_for_check["distance"][0] == breaks_for_check["distance"][1]:
-
-            if mouse.position != old_mouse_position:
-    
-                if old_mouse_position != [-1,-1] and (abs(mouse.position[0]-old_mouse_position[0]) > 150 or abs(mouse.position[1]-old_mouse_position[1]) > 150):
-                    addStyleText("John Cena's mouse", StyleText)
-
-                old_mouse_position = mouse.position
-
-                # addStyleText("RECONSTRUCT WHAT!?!", StyleText)
-
-        for i in breaks_for_check:
-            if breaks_for_check[i][0] == 0:
-                breaks_for_check[i][0] = breaks_for_check[i][1]
-                continue
-            breaks_for_check[i][0] -= 1
-        
-        sleep(0.01)
-
-
-def addStyleText(text : str, styleText : Label):
-    """
-    Adds a string to the AllStyles list and updates the text of the StyleText Label.
-    This function MUST be called from the main Tkinter thread.
-    
-    Args:
-        text (str): The string to be added to AllStyles.
-        StyleText (Label): The Label to be updated.
-    """
-    if styleText:
-        # Check if the last added item is the same as the current text to avoid
-        # excessive duplicates if you only want unique messages
-        if not allStyles or allStyles[-1] != "+ " + text:
-            allStyles.append("+ "+text)
-        
-            if len(allStyles) > 10:
-                allStyles.pop(0)
-            
-            styleText.configure(text="\n".join(allStyles))
-
-
 def periodic_gui_update(window, styleText):
 
     """
-    Periodically checks for key presses and mouse movement to update the styleText label accordingly.
+    Periodically updates the GUI with the current CPS and checks for mouse movement and escape key presses.
 
-    This function is called every 100ms to update the styleText label with the current count of character hits and to check for mouse movement.
-    If the user has moved the mouse over the specified distance, it adds "+ John Cena's mouse" to the styleText label.
-    If the user has pressed the "esc" key, it destroys the window and stops scheduling further updates.
+    Args:
+        window (Tk): The Tkinter window to update.
+        styleText (Label): The Label to update with the current CPS.
 
-    This function MUST be called from the main Tkinter thread.
+    This function schedules itself to be called every 100ms and runs indefinitely until the window is destroyed.
+    It checks for the following events:
 
-    Returns:
-        None
+    1. Escape key presses: Destroys the window if pressed.
+    2. Mouse movement: If the mouse has moved more than 150 pixels in either the x or y direction, it adds a style text message
+        to the styleText label with the message "John Cena's mouse".
+
     """
-
-
-    mouse = Controller()
     
-    old_mouse_position = [-1,-1]
+    while window.winfo_exists():
 
-    # If the window has been destroyed, stop scheduling further updates
-    if not window or not window.winfo_exists():
-        return
+        mouse = Controller()
+        
+        old_mouse_position = [-1,-1]
 
-    # 1. Input/Escape Key Check
-    if keyboard.is_pressed("esc"):
-    
-        window.destroy()
-        return
+        # If the window has been destroyed, stop scheduling further updates
+        if not window or not window.winfo_exists():
+            return
 
-    # 2. Update Local CPS
-    current_cps_hits = len(CalculateCps.char_hits)
-    addStyleText(str(current_cps_hits), styleText)
+        # 1. Input/Escape Key Check
+        if keyboard.is_pressed("esc"):
+        
+            window.destroy()
+            return
 
-    # 3. Check Mouse Movement
+        # 2. Update Local CPS
+        current_cps_hits = CalculateCps.getCurrentCps()
+        addStyleText(str(current_cps_hits), styleText)
 
-    current_mouse_position = mouse.position
+        # 3. Check Mouse Movement
 
-    if current_mouse_position != old_mouse_position:
+        current_mouse_position = mouse.position
 
-        if old_mouse_position != [-1,-1] and (abs(current_mouse_position[0]-old_mouse_position[0]) > 150 or abs(current_mouse_position[1]-old_mouse_position[1]) > 150):
+        if current_mouse_position != old_mouse_position:
 
-            addStyleText("John Cena's mouse", styleText)
+            if old_mouse_position != [-1,-1] and (abs(current_mouse_position[0]-old_mouse_position[0]) > 150 or abs(current_mouse_position[1]-old_mouse_position[1]) > 150):
 
-        old_mouse_position = current_mouse_position
+                addStyleText("John Cena's mouse", styleText)
+
+            old_mouse_position = current_mouse_position
 
 
 
 def main():
-
-    # Initialize the CalculateCps module's variables
-    CalculateCps.init()
     
     # Create an instance of Tkinter Frame
     window = Tk()
@@ -208,7 +120,9 @@ def main():
     styleText.pack(ipadx=0, ipady=0, pady=60)
 
     # Threads
-    CalculateCps.mainChecker()
+    keyListenerThread = threading.Thread(target=CalculateCps.startKeyListener, daemon=True)
+    keyListenerThread.start()
+
     window.after(100, periodic_gui_update, window, styleText)
 
     # Start the main loop
