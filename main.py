@@ -4,7 +4,6 @@ import threading
 import keyboard
 from pynput.mouse import Controller
 from time import sleep
-import pygetwindow as gw
 import CalculateCps
 
 
@@ -71,7 +70,9 @@ def periodic_gui_update(window, styleText):
 
         # 2. Update Local CPS
         current_cps_hits = CalculateCps.getCurrentCps()
-        addStyleText(str(current_cps_hits), styleText)
+        if current_cps_hits > 10:
+            addStyleText("pluh", styleText)
+            print(current_cps_hits)
 
         # 3. Check Mouse Movement
 

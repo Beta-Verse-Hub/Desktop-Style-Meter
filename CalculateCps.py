@@ -1,7 +1,6 @@
 import collections
 from threading import Lock
 from time import time, sleep
-import keyboard
 from KeyDetectorWrapper import getKey
 
 
@@ -16,7 +15,6 @@ def onKeyPress(key):
     char_hits.append(key)
     with cps_lock:
         time_of_total_hits.append(time())
-    print(getCurrentCps())
 
 
 def getCurrentCps():
@@ -37,4 +35,3 @@ def startKeyListener():
         key = getKey()
         if key != -1:
             onKeyPress(key)
-        sleep(0.01)
