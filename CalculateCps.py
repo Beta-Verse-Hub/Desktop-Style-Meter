@@ -2,6 +2,7 @@ import collections
 from threading import Lock
 from time import time, sleep
 import keyboard
+from KeyDetectorWrapper import getKey
 
 
 char_hits = []
@@ -9,12 +10,13 @@ time_of_total_hits = collections.deque()
 cps_lock = Lock()
 
 
-def onKeyPress(event):
+def onKeyPress(key):
     """Callback function for keyboard presses."""
 
-    char_hits.append(event.name)
+    char_hits.append(key)
     with cps_lock:
         time_of_total_hits.append(time())
+    print(getCurrentCps())
 
 
 def getCurrentCps():
@@ -32,5 +34,7 @@ def startKeyListener():
     """Starts the keyboard listener in a non-blocking way."""
 
     while True:
-        keyboard.on_press(onKeyPress)
+        key = getKey()
+        if key != -1:
+            onKeyPress(key)
         sleep(0.01)
