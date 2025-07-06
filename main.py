@@ -8,10 +8,11 @@ import CalculateCps
 
 
 allStyles = []
+mouse = Controller()
+old_mouse_position = [-1,-1]
 
 
-def addStyleText(text : str, styleText : Label):
-
+def addStyleText(text: str, styleText: Label) -> None:
     """
     Adds a style text message to the given styleText label.
 
@@ -21,74 +22,81 @@ def addStyleText(text : str, styleText : Label):
     Args:
         text (str): The message to add.
         styleText (Label): The label to update with the new message.
+
+    Returns:
+        None
     """
 
     if styleText:
         # Check if the last added item is the same as the current text to avoid
         # excessive duplicates if you only want unique messages
-        allStyles.append("+ "+text)
+        allStyles.append("+ " + text)
     
-        if len(allStyles) > 10:
+        if len(allStyles) > 7:
             allStyles.pop(0)
         
         styleText.configure(text="\n".join(allStyles))
 
 
-def periodic_gui_update(window, styleText):
-
+def periodic_gui_update(window: Tk, styleText: Label) -> None:
     """
-    Periodically updates the GUI with the current CPS and checks for mouse movement and escape key presses.
+    A function that periodically updates the GUI, checking for input and mouse movement.
 
-    Args:
-        window (Tk): The Tkinter window to update.
-        styleText (Label): The Label to update with the current CPS.
+    Called every 100ms by `window.after()`, this function checks for several conditions:
 
-    This function schedules itself to be called every 100ms and runs indefinitely until the window is destroyed.
-    It checks for the following events:
-
-    1. Escape key presses: Destroys the window if pressed.
-    2. Mouse movement: If the mouse has moved more than 150 pixels in either the x or y direction, it adds a style text message
-        to the styleText label with the message "John Cena's mouse".
-
+    1. If the Escape key is pressed, it closes the window.
+    2. If the user has 10 or more CPS in the last second, it adds a style text message
+       showing their CPS.
+    3. If the mouse has moved more than 500 pixels in either the x or y direction, it
+       adds a style text message saying "John Cena's mouse".
     """
+
+    global old_mouse_position, mouse
+
+    # If the window has been destroyed, stop scheduling further updates
+    if not window or not window.winfo_exists():
+        return
+
+    # 1. Input/Escape Key Check
+    if keyboard.is_pressed("esc"):
     
-    while window.winfo_exists():
+        window.destroy()
+        return
 
-        mouse = Controller()
-        
-        old_mouse_position = [-1,-1]
+    # 2. Update Local CPS
+    current_cps_hits = CalculateCps.getCurrentCps()
+    if current_cps_hits > 10:
+        addStyleText(str(current_cps_hits), styleText)
 
-        # If the window has been destroyed, stop scheduling further updates
-        if not window or not window.winfo_exists():
-            return
+    # 3. Check Mouse Movement
 
-        # 1. Input/Escape Key Check
-        if keyboard.is_pressed("esc"):
-        
-            window.destroy()
-            return
+    current_mouse_position = list(mouse.position)
 
-        # 2. Update Local CPS
-        current_cps_hits = CalculateCps.getCurrentCps()
-        if current_cps_hits > 10:
-            addStyleText("pluh", styleText)
-            print(current_cps_hits)
+    if current_mouse_position != old_mouse_position:
 
-        # 3. Check Mouse Movement
+        if old_mouse_position != [-1,-1] and abs(current_mouse_position[0]-old_mouse_position[0]) > 500 or abs(current_mouse_position[1]-old_mouse_position[1]) > 500:
+            print(old_mouse_position, current_mouse_position)
+            addStyleText("John Cena's mouse", styleText)
 
-        current_mouse_position = mouse.position
-
-        if current_mouse_position != old_mouse_position:
-
-            if old_mouse_position != [-1,-1] and (abs(current_mouse_position[0]-old_mouse_position[0]) > 150 or abs(current_mouse_position[1]-old_mouse_position[1]) > 150):
-
-                addStyleText("John Cena's mouse", styleText)
-
-            old_mouse_position = current_mouse_position
+        old_mouse_position = current_mouse_position
+    
+    window.after(100, periodic_gui_update, window, styleText)
 
 
 
 def main():
+    
+    """
+    The main function of the program.
+
+    This function creates a window with a transparent background and a label that displays
+    the current CPS and mouse movement. It also starts a thread that listens for key presses
+    and updates the label accordingly. The window is set to be on top of all other windows
+    and is positioned at the bottom right corner of the screen.
+
+    Returns:
+        None
+    """
     
     # Create an instance of Tkinter Frame
     window = Tk()
@@ -109,6 +117,7 @@ def main():
     # Adding transparent background property
     transparent_color = "#010101"
     window.wm_attributes('-transparentcolor', transparent_color)
+    window.attributes('-alpha', 0.5)
 
     # Create a Label with the same background color as the transparent color
     bg_image = PhotoImage(file="Background.png")
@@ -117,8 +126,8 @@ def main():
     styleTextCanvas.pack(fill="both", expand=True)
     styleTextCanvas.create_image(0, 0, image=bg_image, anchor="nw")
     
-    styleText = Label(styleTextCanvas, text=allStyles, font=('Helvetica 18'), foreground="#000000", background = "#ffffff")
-    styleText.pack(ipadx=0, ipady=0, pady=60)
+    styleText = Label(styleTextCanvas, text=allStyles, font=('Helvetica 18'), foreground="#000000", wraplength=300, background = "#ffffff")
+    styleText.grid(row=0, column=0, padx=20, pady=160)
 
     # Threads
     keyListenerThread = threading.Thread(target=CalculateCps.startKeyListener, daemon=True)
