@@ -1,8 +1,7 @@
 import collections
 from threading import Lock
-from time import time, sleep
+from time import time
 import keyboard
-from KeyDetectorWrapper import getKey
 
 
 char_hits = []
@@ -24,7 +23,7 @@ def onKeyPress(key: int, key_pressed: bool) -> None:
     It also acquires the `cps_lock` while updating the `time_of_total_hits` deque to ensure thread safety.
     """
     
-    if key_pressed and key == char_hits[-1]:
+    if key_pressed:
         return
     
     # Append the key to the list
@@ -56,7 +55,8 @@ def getCurrentCps() -> int:
         # Remove timestamps older than 1 second
         while time_of_total_hits and time_of_total_hits[0] < now - 1.0:
             time_of_total_hits.popleft()
-        
+    
+        print(len(time_of_total_hits))
         # Calculate the number of key presses in the last second
         return len(time_of_total_hits)
 
@@ -82,12 +82,9 @@ def startKeyListener() -> None:
 
     while True:
 
-        key: int = getKey()
-
         key = keyboard.read_key()
 
         if key:
             onKeyPress(key, key_pressed)
-            key_pressed = True
         else:
             key_pressed = False
